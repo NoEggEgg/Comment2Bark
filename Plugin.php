@@ -116,11 +116,11 @@ class Comment2Bark_Plugin implements Typecho_Plugin_Interface {
             // 发送推送
             self::sendPush($pushData, $options);
         } catch (Exception $e) {
-            if ($options) {
-                self::log('推送失败: ' . $e->getMessage(), $options);
-            } else {
-                error_log('Comment2Bark: 推送失败: ' . $e->getMessage());
-            }
+            // 使用Typecho的日志系统记录错误
+            Typecho_Plugin::error(_t('Comment2Bark 推送失败: %s', $e->getMessage()));
+            
+            // 同时使用error_log作为备份
+            error_log('Comment2Bark: 推送失败: ' . $e->getMessage());
         }
         
         return $comment;
