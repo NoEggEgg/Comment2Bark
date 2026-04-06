@@ -95,6 +95,17 @@ Comment2Bark 是一个 Typecho 插件，用于将博客的评论、trackback 和
 
 ## 版本历史
 
+### v1.4.0
+
+- **全面代码重构**：从 500 行精简至 200 行，代码更简洁高效
+- 合并 `barkSend` 和 `finishComment` 为统一的 `handleComment` 入口
+- 提取魔法数字为类常量（`MAX_RETRIES`、`MAX_TEXT_LENGTH` 等）
+- 新增 `isSuccess()`、`sanitizeText()` 等辅助方法
+- 重构评论链接生成逻辑，使用 `Helper::widgetById()` 替代废弃的 `push()` 方法
+- 兼容 Typecho 1.2.x 和 1.3.0+，解决永久链接 permalink 获取问题
+- 优化分页计算，使用 `max(1, ceil())` 确保页码最小为 1
+- 添加空值保护，防止无效数据导致链接构建失败
+
 ### v1.3.0
 
 - 重构代码结构，减少代码重复，提高可维护性
