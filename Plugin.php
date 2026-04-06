@@ -101,6 +101,7 @@ class Comment2Bark_Plugin implements Typecho_Plugin_Interface {
      * @return array
      */
     public static function barkSend($comment, $post) {
+        $options = null;
         try {
             $options = self::getOptions();
             
@@ -115,7 +116,11 @@ class Comment2Bark_Plugin implements Typecho_Plugin_Interface {
             // 发送推送
             self::sendPush($pushData, $options);
         } catch (Exception $e) {
-            self::log('推送失败: ' . $e->getMessage(), $options);
+            if ($options) {
+                self::log('推送失败: ' . $e->getMessage(), $options);
+            } else {
+                error_log('Comment2Bark: 推送失败: ' . $e->getMessage());
+            }
         }
         
         return $comment;
