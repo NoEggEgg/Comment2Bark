@@ -4,7 +4,7 @@
  * 
  * @package Comment2Bark
  * @author <strong>蛋蛋之家</strong>
- * @version 1.1
+ * @version 1.1.1
  * @link https://github.com/NoEggEgg/Comment2Bark
  */
 
@@ -160,7 +160,14 @@ class Comment2Bark_Plugin implements Typecho_Plugin_Interface {
      */
     private static function preparePushData($comment, $post, $options) {
         $title = '你的博客有了新评论';
-        $body = $comment['author'] . " 在「" . $post->title . "」中说：\n\n" . $comment['text'] . "\n\n" . $post->permalink;
+        
+        // 构建指向评论位置的链接
+        $commentLink = $post->permalink;
+        if (isset($comment['coid'])) {
+            $commentLink .= '#comment-' . $comment['coid'];
+        }
+        
+        $body = $comment['author'] . " 在「" . $post->title . "」中说：\n\n" . $comment['text'] . "\n\n" . $commentLink;
         
         return [
             'title' => $title,
