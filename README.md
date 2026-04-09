@@ -98,6 +98,11 @@ https://example.com/blog/post/comment-page-1#comment-125
 
 ## 版本历史
 
+### v2.0.1 (2026-04-09)
+
+- **钩子修复**：修复 `onMark` 钩子参数错误，正确响应 Typecho `mark(int $coid, string $status)` 签名
+- **通知优化**：审核通知区分回复和新评论，回复评论审核通过时推送「回复通知」
+
 ### v2.0.0 (2026-04-07)
 
 - **代码重构**：精简代码，模块化设计

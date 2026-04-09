@@ -4,7 +4,7 @@
  *
  * @package Comment2Bark
  * @author  蛋蛋之家
- * @version 2.0.0
+ * @version 2.0.1
  * @link    https://github.com/NoEggEgg/Comment2Bark
  */
 
@@ -108,14 +108,14 @@ class Comment2Bark_Plugin implements Typecho_Plugin_Interface
 
     /**
      * onMark 钩子 - 后台评论审核处理
+     * mark 方法签名: mark(int $coid, string $status)
      */
-    public static function onMark($comment, $edit, string $status)
+    public static function onMark(int $coid, string $status)
     {
         $options = self::getOptions();
-        $coid = $comment->coid ?? 0;
 
         if (empty($coid) || $status !== self::STATUS_APPROVED) {
-            return $comment;
+            return;
         }
 
         self::log("审核通过: coid={$coid}", $options);
@@ -126,8 +126,6 @@ class Comment2Bark_Plugin implements Typecho_Plugin_Interface
         } catch (Exception $e) {
             Typecho_Plugin::error(_t('Comment2Bark 审核通知失败: %s', $e->getMessage()));
         }
-
-        return $comment;
     }
 
     // ==================== 推送场景 ====================
@@ -248,11 +246,17 @@ class Comment2Bark_Plugin implements Typecho_Plugin_Interface
             return null;
         }
 
-        $cid = $comment['cid'] ?? 0;
+        $cid    = $comment['cid'] ?? 0;
+        $parent = $comment['parent'] ?? 0;
+
+        // 区分回复和新评论
+        $title = $parent == 0
+            ? "✅ 【" . self::getSiteName() . "】评论审核已通过"
+            : "💬 【" . self::getSiteName() . "】的评论被回复";
 
         return self::buildCommentData(
             $options,
-            "✅ 【" . self::getSiteName() . "】评论审核已通过",
+            $title,
             $comment['post_title'] ?? '',
             $comment['author'] ?? '',
             $comment['text'] ?? '',
