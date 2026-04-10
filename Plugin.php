@@ -4,7 +4,7 @@
  *
  * @package Comment2Bark
  * @author  蛋蛋之家
- * @version 2.0.1
+ * @version 2.0.2
  * @link    https://github.com/NoEggEgg/Comment2Bark
  */
 
@@ -35,7 +35,6 @@ class Comment2Bark_Plugin implements Typecho_Plugin_Interface
     public static function activate(): string
     {
         Typecho_Plugin::factory('Widget_Feedback')->finishComment = [self::class, 'onFinishComment'];
-        Typecho_Plugin::factory('Widget_Comments_Edit')->mark = [self::class, 'onMark'];
         return _t('请配置 Bark Key 以启用推送');
     }
 
@@ -102,29 +101,7 @@ class Comment2Bark_Plugin implements Typecho_Plugin_Interface
                 default => null
             };
         } catch (Exception $e) {
-            Typecho_Plugin::error(_t('Comment2Bark 推送失败: %s', $e->getMessage()));
-        }
-    }
-
-    /**
-     * onMark 钩子 - 后台评论审核处理
-     * mark 方法签名: mark(int $coid, string $status)
-     */
-    public static function onMark(int $coid, string $status)
-    {
-        $options = self::getOptions();
-
-        if (empty($coid) || $status !== self::STATUS_APPROVED) {
-            return;
-        }
-
-        self::log("审核通过: coid={$coid}", $options);
-
-        try {
-            $pushData = self::buildApprovedNotice($coid, $options);
-            $pushData && self::sendPush($pushData, $options);
-        } catch (Exception $e) {
-            Typecho_Plugin::error(_t('Comment2Bark 审核通知失败: %s', $e->getMessage()));
+            error_log('[Comment2Bark] 推送失败: ' . $e->getMessage());
         }
     }
 
@@ -163,7 +140,7 @@ class Comment2Bark_Plugin implements Typecho_Plugin_Interface
         $comment = self::getCommentWithPost($coid);
         $parentComment = self::getComment($parent);
 
-        if (!$comment || !$parentComment) {
+        if (!$comment || empty($parentComment)) {
             return;
         }
 
@@ -236,35 +213,6 @@ class Comment2Bark_Plugin implements Typecho_Plugin_Interface
         self::sendPush($data, $options);
     }
 
-    /**
-     * 场景5: 后台审核通过
-     */
-    private static function buildApprovedNotice(int $coid, object $options): ?array
-    {
-        $comment = self::getCommentWithPost($coid);
-        if (!$comment) {
-            return null;
-        }
-
-        $cid    = $comment['cid'] ?? 0;
-        $parent = $comment['parent'] ?? 0;
-
-        // 区分回复和新评论
-        $title = $parent == 0
-            ? "✅ 【" . self::getSiteName() . "】评论审核已通过"
-            : "💬 【" . self::getSiteName() . "】的评论被回复";
-
-        return self::buildCommentData(
-            $options,
-            $title,
-            $comment['post_title'] ?? '',
-            $comment['author'] ?? '',
-            $comment['text'] ?? '',
-            self::getCommentUrl($coid, $cid),
-            self::LEVEL_ACTIVE
-        );
-    }
-
     // ==================== 辅助方法 ====================
 
     private static function getOptions(): object
@@ -277,9 +225,9 @@ class Comment2Bark_Plugin implements Typecho_Plugin_Interface
         return Typecho_Widget::widget('Widget_Options')->title;
     }
 
-    private static function getWidgetOptions(): Typecho_Widget
+    private static function getSiteUrl(): string
     {
-        return Typecho_Widget::widget('Widget_Options');
+        return Typecho_Widget::widget('Widget_Options')->siteUrl ?? '';
     }
 
     /**
@@ -334,11 +282,11 @@ class Comment2Bark_Plugin implements Typecho_Plugin_Interface
      */
     private static function getCommentUrl(int $coid, int $cid): string
     {
-        $options = self::getWidgetOptions();
+        $options = self::getOptions();
         $permalink = self::getPostPermalink($cid);
 
         if (empty($permalink)) {
-            return rtrim($options->siteUrl, '/');
+            return rtrim(self::getSiteUrl(), '/');
         }
 
         $permalink = rtrim($permalink, '/');
@@ -406,7 +354,7 @@ class Comment2Bark_Plugin implements Typecho_Plugin_Interface
 
     private static function getAdminUrl(): string
     {
-        return rtrim(self::getWidgetOptions()->siteUrl, '/') . '/admin/manage-comments.php';
+        return rtrim(self::getSiteUrl(), '/') . '/admin/manage-comments.php';
     }
 
     /**
@@ -484,6 +432,8 @@ class Comment2Bark_Plugin implements Typecho_Plugin_Interface
                 $retryDelay *= 2;
             }
         }
+
+        self::log("{$data['title']} 推送失败，已重试 " . self::MAX_RETRIES . " 次", $options);
     }
 
     private static function requestWithCurl(string $url, array $data): bool
